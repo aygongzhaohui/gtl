@@ -1,8 +1,8 @@
 /**
  * @file emailaddr_check.cpp
- * @brief   
+ * @brief
  * @author GongZhaohui
- * @version 
+ * @version
  * @date 2016-06-07
  */
 
@@ -27,10 +27,10 @@ IMPL_STATE_ACTION(EmailAddrBegin, char)
 IMPL_STATE_ACTION(EmailAddrEnd, char)
 {
     if (isalnum(e))
-	{
-		printf("EmailAddrEnd change to finish\n");
+    {
+        printf("EmailAddrEnd change to finish\n");
         return 0;
-	}
+    }
     return -1;
 }
 

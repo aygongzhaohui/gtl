@@ -1,8 +1,8 @@
 /**
  * @file state_machineT.h
- * @brief   
+ * @brief
  * @author GongZhaohui
- * @version 
+ * @version
  * @date 2016-06-07
  */
 
@@ -33,7 +33,7 @@ public:
      * @param   st
      * @param   e
      *
-     * @return  
+     * @return
      *   1: could recieve more event
      *   0: to be in an end state
      *  -1: error
@@ -67,7 +67,7 @@ public:
      * @param   e
      *          An event to trigger the action
      *
-     * @return  
+     * @return
      *   1: could recieve more event
      *   0: to be in an end state
      *  -1: error
@@ -77,7 +77,7 @@ public:
 
 
 /**
- * @class  StateT 
+ * @class  StateT
  * @brief  State class template
  *
  * @tparam CONTEXT
@@ -98,18 +98,18 @@ public:
      * @param   context
      * @param   e
      *
-     * @return  
+     * @return
      */
     int action(CONTEXT & context, EVENT & e)
     {
-		STATE st;
+        STATE st;
         return Action::doAction(context, st, e);
     }
 };// end-class StateT
 
 /**
  * @class StateMachine
- * @brief  A class template 
+ * @brief  A class template
  *
  * @tparam EVENT
  *   The type of the event
@@ -149,7 +149,7 @@ public:
      */
     int action(EVENT & e)
     {
-        if (!p_state_) return -1; 
+        if (!p_state_) return -1;
         return p_state_->action(*this, e);
     }
 
@@ -172,8 +172,8 @@ private:
  *  The type of the event.
  */
 #define DECLARE_STATE(stateName, eventType) \
-	class C##stateName : public gtl::StateT<gtl::StateMachine<eventType>, eventType, C##stateName> \
-	{} stateName;
+    class C##stateName : public gtl::StateT<gtl::StateMachine<eventType>, eventType, C##stateName> \
+    {} stateName;
 
 /**
  * @def     IMPL_STATE_ACTION(stateName, eventType)
@@ -189,7 +189,7 @@ private:
  */
 #define IMPL_STATE_ACTION(stateName, eventType) \
     template<> int gtl::Action::doAction(gtl::StateMachine<eventType> & context,\
-										C##stateName & state, eventType & e)
+                                        C##stateName & state, eventType & e)
 
 
 #endif
