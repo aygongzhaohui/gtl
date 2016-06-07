@@ -10,37 +10,48 @@
 #include <ctype.h>
 #include "state_machineT.h"
 
-DECLARE_STATE(EmailAddrBegin, char);
-DECLARE_STATE(EmailAddrEnd, char);
+typedef char EmailAddrStEvent;
+typedef gtl::StateMachine<EmailAddrStEvent> EmailAddrStMach;
 
-IMPL_STATE_ACTION(EmailAddrBegin, char)
+DECLARE_STATE(EmailAddrBegin, EmailAddrStEvent);
+DECLARE_STATE(EmailAddrUserName, EmailAddrStEvent);
+DECLARE_STATE(EmailAddrDomainBegin, EmailAddrStEvent);
+DECLARE_STATE(EmailAddrEnd, EmailAddrStEvent);
+
+
+IMPL_STATE_ACTION(EmailAddrBegin, EmailAddrStEvent)
 {
-    if (isalnum(e))
+    if (isalnum(event))
     {
         context.setState(EmailAddrEnd);
         printf("EmailAddrBegin change to EmailAddrEnd\n");
         return 1;
     }
+    printf("EmailAddrBegin failed\n");
     return -1;
 }
 
-IMPL_STATE_ACTION(EmailAddrEnd, char)
+IMPL_STATE_ACTION(EmailAddrEnd, EmailAddrStEvent)
 {
-    if (isalnum(e))
+    if (isalnum(event))
     {
         printf("EmailAddrEnd change to finish\n");
         return 0;
     }
+    printf("EmailAddrEnd failed\n");
     return -1;
 }
 
 int main()
 {
-    gtl::StateMachine<char> stMachine;
+    EmailAddrStMach stMachine;
     stMachine.setState(EmailAddrBegin);
-    char c = 'a';
+    EmailAddrStEvent c = 'a';
     int ret = 0;
-    while ((ret = stMachine.action(c)) == 1);
+    while ((ret = stMachine.action(c)) == 1)
+    {
+        c = '.';
+    }
     return 0;
 }
 

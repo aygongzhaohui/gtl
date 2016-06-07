@@ -102,8 +102,7 @@ public:
      */
     int action(CONTEXT & context, EVENT & e)
     {
-        STATE st;
-        return Action::doAction(context, st, e);
+        return Action::doAction(context, STATE(), e);
     }
 };// end-class StateT
 
@@ -180,7 +179,7 @@ private:
  * @brief   The prefix of implement of the state action.
  *   Specific code could write in the "{}".
  *   Var context can be used as the StateMachine;
- *   Var e can be used as the input event.
+ *   Var event can be used as the input event.
  * @param   stateName
  *  The state name to indicate the state, and can be used
  *  in the program.
@@ -189,7 +188,7 @@ private:
  */
 #define IMPL_STATE_ACTION(stateName, eventType) \
     template<> int gtl::Action::doAction(gtl::StateMachine<eventType> & context,\
-                                        C##stateName & state, eventType & e)
+                                        C##stateName & state, eventType & event)
 
 
 #endif
