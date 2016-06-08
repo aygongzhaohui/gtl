@@ -39,11 +39,15 @@ public:
      *  -1: error
      */
     template <class CONTEXT, typename EVENT, class STATE>
-    static int doAction(CONTEXT & context, STATE & st, EVENT & e)
+    static int doAction(CONTEXT & context, const STATE & st, EVENT & e)
     {
+        e = e;// avoid warning
+        st.dummy();// avoid warning
+        context = context;// avoid warning
         return 0;
     }
 };// end-class Action
+
 
 /**
  * @class  IStateT
@@ -104,7 +108,12 @@ public:
     {
         return Action::doAction(context, STATE(), e);
     }
+
+    void dummy() const
+    {// avoid warning
+    }
 };// end-class StateT
+
 
 /**
  * @class StateMachine
@@ -188,7 +197,7 @@ private:
  */
 #define IMPL_STATE_ACTION(stateName, eventType) \
     template<> int gtl::Action::doAction(gtl::StateMachine<eventType> & context,\
-                                        C##stateName & state, eventType & event)
+                                        const C##stateName & state, eventType & event)
 
 
 #endif
