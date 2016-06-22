@@ -9,6 +9,8 @@
 #ifndef _GTL_STATE_MACHINE_H_
 #define _GTL_STATE_MACHINE_H_
 
+#include <assert.h>
+
 namespace gtl
 {
 
@@ -20,6 +22,14 @@ namespace gtl
  */
 class Action
 {
+public:
+    enum State
+    {
+        AS_ERROR = -1,
+        AS_END = 0,
+        AS_CONTINUE = 1
+    };
+
 public:
     /**
      * @brief  Need implement by user, to handle the input event
@@ -39,12 +49,12 @@ public:
      *  -1: error
      */
     template <class CONTEXT, typename EVENT, class STATE>
-    static int doAction(CONTEXT & context, const STATE & st, EVENT & e)
+    static State doAction(CONTEXT & context, const STATE & st, const EVENT & e)
     {
         e = e;// avoid warning
         st.dummy();// avoid warning
         context = context;// avoid warning
-        return 0;
+        return AS_END;
     }
 };// end-class Action
 
@@ -76,7 +86,7 @@ public:
      *   0: to be in an end state
      *  -1: error
      */
-    virtual int action(CONTEXT & context, EVENT & e) = 0;
+    virtual Action::State action(CONTEXT & context, const EVENT & e) = 0;
 };// end-class IStateT
 
 
@@ -104,7 +114,7 @@ public:
      *
      * @return
      */
-    int action(CONTEXT & context, EVENT & e)
+    Action::State action(CONTEXT & context, const EVENT & e)
     {
         return Action::doAction(context, STATE(), e);
     }
@@ -129,8 +139,27 @@ public:
     typedef IStateT<StateMachine<EVENT>, EVENT> IState;
 
 public:
-    StateMachine() : p_state_(NULL)
+    StateMachine(const EVENT * list, unsigned len) :
+        p_state_(NULL),
+        p_evlist_(list),
+        evlist_len_(len)
     {
+        assert(list && len > 0);
+    }
+
+    bool run(IState & initState)
+    {
+        if (!p_evlist_ || evlist_len_ == 0)
+            return false;
+        setState(initState);
+		Action::State s = Action::AS_CONTINUE;
+        for (int i = 0; i < evlist_len_; ++i)
+        {
+            s = action(*(p_evlist_ + i));
+            if (s == Action::AS_ERROR) return false;
+        }
+        if (s == Action::AS_END) return true;
+        return false;
     }
 
     /**
@@ -144,6 +173,7 @@ public:
         p_state_ = &s;
     }
 
+protected:
     /**
      * @brief   Using current state to handle the event
      *
@@ -155,14 +185,16 @@ public:
      *   0: to be in an end state
      *  -1: error
      */
-    int action(EVENT & e)
+    Action::State action(const EVENT & e)
     {
-        if (!p_state_) return -1;
+        if (!p_state_) return Action::AS_ERROR;
         return p_state_->action(*this, e);
     }
 
 private:
     IState * p_state_;
+    const EVENT * p_evlist_;
+    unsigned evlist_len_;
 };// end-class StateMachine
 
 
@@ -196,8 +228,8 @@ private:
  *  The type of the event.
  */
 #define IMPL_STATE_ACTION(stateName, eventType) \
-    template<> int gtl::Action::doAction(gtl::StateMachine<eventType> & context,\
-                                        const C##stateName & state, eventType & event)
+    template<> Action::State gtl::Action::doAction(gtl::StateMachine<eventType> & context,\
+												const C##stateName & state, const eventType & event)
 
 
 #endif

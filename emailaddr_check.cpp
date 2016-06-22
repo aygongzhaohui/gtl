@@ -24,36 +24,65 @@ typedef gtl::StateMachine<EmailAddrStEvent> EmailAddrStMach;
 
 /**
  * @brief State EmailAddrBegin
- *  First character of email addr must be digit or letter
+ *
+ * This state expect next input event to be the first
+ * charactor of the user name.
  */
 DECLARE_STATE(EmailAddrBegin, EmailAddrStEvent);
 
 /**
  * @brief State EmailAddrUserName
- *  regex: [a-zA-Z\._0-9]
+ * 
+ * This state expect the next input event to be the charactor
+ * in the user name, not the first char.
  */
 DECLARE_STATE(EmailAddrUserName, EmailAddrStEvent);
 
 /**
+ * @brief State EmailAddrLastDomainBegin
+ *
+ * This state expect the next input event to be the first
+ * char of the last domain name.
+ * In domain secion of email addr, there is at least two domain name.
+ */
+DECLARE_STATE(EmailAddrLastDomainBegin, EmailAddrStEvent);
+
+/**
+ * @brief State EmailAddrLastDomain
+ *
+ * This state expect the next input event to be the char of
+ * the last domain name, not the first char.
+ */
+DECLARE_STATE(EmailAddrLastDomain, EmailAddrStEvent);
+
+/**
  * @brief State EmailAddrDomainBegin
- *  First charactor of domain name, after '@' or '.'
- *  regex: [a-zA-Z0-9]
+ *
+ * This state expect the next input event to be the first char 
+ * of the other(not the last) domain name.
  */
 DECLARE_STATE(EmailAddrDomainBegin, EmailAddrStEvent);
 
+
 /**
- * @brief State EmailAddrDomainBegin
- *  regex: [a-zA-Z0-9\-]
+ * @brief State EmailAddrDomain
+ *
+ * This state expect the next input event to be the char 
+ * of the other(not the last) domain name, not the first char.
  */
 DECLARE_STATE(EmailAddrDomain, EmailAddrStEvent);
 
+
+// It is not perfect: 
+// We need put the template specializtion to the gtl namespace.
+// VC2012 can accept without doing this, but g++ 4.4.7 couldn't.
+namespace gtl
+{
+
 /**
- * @brief State EmailAddrEnd
- *  regex: [a-zA-Z0-9\-]
+ * @brief State EmailAddrBegin
+ *  First character of email addr must be digit or letter
  */
-//DECLARE_STATE(EmailAddrEnd, EmailAddrStEvent);
-
-
 IMPL_STATE_ACTION(EmailAddrBegin, EmailAddrStEvent)
 {
     state.dummy();// avoid warning
@@ -61,28 +90,76 @@ IMPL_STATE_ACTION(EmailAddrBegin, EmailAddrStEvent)
     {// change to state EmailAddrUserName
         context.setState(EmailAddrUserName);
         _DEBUG_PRINTF_("EmailAddrBegin change to EmailAddrUserName\n");
-        return 1;
+        return Action::AS_CONTINUE;
     }
-    return -1;
+    return Action::AS_ERROR;
 }
 
+/**
+ * @brief State EmailAddrUserName
+ *  regex: [a-zA-Z\._0-9]
+ */
 IMPL_STATE_ACTION(EmailAddrUserName, EmailAddrStEvent)
 {
     state.dummy();// avoid warning
-    if (isalnum(event) || event == '.' || event == '\\')
+    if (isalnum(event) || event == '.' || event == '_')
     {
         _DEBUG_PRINTF_("Stay in EmailAddrUserName\n");
-        return 1;
+        return Action::AS_CONTINUE;
     }
     else if (event == '@')
-    {// change to state EmailAddrDomainBegin
-        context.setState(EmailAddrDomainBegin);
-        return 1;
+    {// change to state EmailAddrLastDomainBegin
+        context.setState(EmailAddrLastDomainBegin);
+        return Action::AS_CONTINUE;
     }
     _DEBUG_PRINTF_("EmailAddrUserName failed\n");
-    return -1;
+    return Action::AS_ERROR;
 }
 
+/**
+ * @brief State EmailAddrLastDomainBegin
+ *  First charactor of domain name, after '@'
+ *  regex: [a-zA-Z0-9]
+ */
+IMPL_STATE_ACTION(EmailAddrLastDomainBegin, EmailAddrStEvent)
+{
+    state.dummy();// avoid warning
+    if (isalnum(event))
+    {// change to state EmailAddrDomain
+        context.setState(EmailAddrLastDomain);
+        _DEBUG_PRINTF_("EmailAddrLastDomainBegin change to EmailAddrLastDomain\n");
+        return Action::AS_CONTINUE;
+    }
+    _DEBUG_PRINTF_("EmailAddrLastDomainBegin failed\n");
+    return Action::AS_ERROR;
+}
+
+/**
+ * @brief State EmailAddrLastDomain
+ *  regex: [a-zA-Z0-9\-]
+ */
+IMPL_STATE_ACTION(EmailAddrLastDomain, EmailAddrStEvent)
+{
+    state.dummy();// avoid warning
+    if (isalnum(event) || event == '-')
+    {
+        _DEBUG_PRINTF_("Stay in EmailAddrUserName\n");
+        return Action::AS_CONTINUE;
+    }
+    else if (event == '.')
+    {// change to state EmailAddrDomainBegin, next domain name
+        context.setState(EmailAddrDomainBegin);
+        _DEBUG_PRINTF_("EmailAddrLastDomain change to EmailAddrDomainBegin\n");
+        return Action::AS_CONTINUE;
+    }
+    _DEBUG_PRINTF_("EmailAddrLastDomain failed\n");
+    return Action::AS_ERROR;
+}
+
+/**
+ * @brief State EmailAddrDomainBegin
+ *  regex: [a-zA-Z0-9\-]
+ */
 IMPL_STATE_ACTION(EmailAddrDomainBegin, EmailAddrStEvent)
 {
     state.dummy();// avoid warning
@@ -90,54 +167,43 @@ IMPL_STATE_ACTION(EmailAddrDomainBegin, EmailAddrStEvent)
     {// change to state EmailAddrDomain
         context.setState(EmailAddrDomain);
         _DEBUG_PRINTF_("EmailAddrDomainBegin change to EmailAddrDomain\n");
-        return 0;// EmailAddrDomainBegin is an end state
+        return Action::AS_END;// EmailAddrDomain is an end state
     }
     _DEBUG_PRINTF_("EmailAddrDomainBegin failed\n");
-    return -1;
+    return Action::AS_ERROR;
 }
 
+/**
+ * @brief State EmailAddrDomain
+ *  regex: [a-zA-Z0-9\-]
+ */
 IMPL_STATE_ACTION(EmailAddrDomain, EmailAddrStEvent)
 {
     state.dummy();// avoid warning
     if (isalnum(event) || event == '-')
     {
         _DEBUG_PRINTF_("Stay in EmailAddrUserName\n");
-        return 0;// EmailAddrDomain is an end state
+        return Action::AS_END;// EmailAddrDomain is an end state
     }
     else if (event == '.')
     {// change to state EmailAddrDomainBegin, next domain name
         context.setState(EmailAddrDomainBegin);
         _DEBUG_PRINTF_("EmailAddrDomain change to EmailAddrDomainBegin\n");
-        return 1;
+        return Action::AS_CONTINUE;
     }
     _DEBUG_PRINTF_("EmailAddrDomain failed\n");
-    return -1;
+    return Action::AS_ERROR;
 }
+
+}// end-namespace gtl
+
 
 bool validEmailAddr(std::string emailAddr)
 {
-    EmailAddrStMach stMachine;
-    stMachine.setState(EmailAddrBegin);
     if (emailAddr.length() < MIN_EMAILADDR_LEN)
         return false;
-    int ret = -1;
-    for (unsigned i = 0; i < emailAddr.length(); ++i)
-    {
-        EmailAddrStEvent c = emailAddr.at(i);
-        ret = stMachine.action(c);
-        if (ret < 0) return false;
-    }
-    if (!ret) return true;
-    return false;
-}
-
-int main(int argc, char ** argv)
-{
-    if (validEmailAddr(argv[1]))
-        printf("Good! %s is an valid email address\n", argv[1]);
-    else
-        printf("Bad! %s isn't an valid email address\n", argv[1]);
-    return 0;
+    EmailAddrStMach stMachine(emailAddr.c_str(), emailAddr.length());
+    return stMachine.run(EmailAddrBegin);
 }
 
 
